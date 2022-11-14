@@ -1,6 +1,7 @@
 .idea
 __pycache__
 .vscode
+*.ipynb
 .ipynb_checkpoints
 **/*.hdf5
 **/*.npy
