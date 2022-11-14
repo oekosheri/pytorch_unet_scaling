@@ -2,6 +2,7 @@
 __pycache__
 .vscode
 *.ipynb
+*.swp
 .ipynb_checkpoints
 **/*.hdf5
 **/*.npy
