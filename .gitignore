@@ -1,0 +1,9 @@
+.idea
+__pycache__
+.vscode
+.ipynb_checkpoints
+**/*.hdf5
+**/*.npy
+mito*/*
+models_*/*
+logs/*
