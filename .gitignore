@@ -1,9 +1,8 @@
 .idea
 __pycache__
 .vscode
-*.ipynb
 *.swp
-.ipynb_checkpoints
+**/.ipynb_checkpoints
 **/*.hdf5
 **/*.npy
 mito*/*
