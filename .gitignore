@@ -7,4 +7,3 @@ __pycache__
 **/*.npy
 mito*/*
 models_*/*
-logs/*
