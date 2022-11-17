@@ -7,7 +7,7 @@ setup=$localDir/setup_dist_env.sh
 
 epochs=80
 bs=32
-name="mito"
+name="mito__"
 
 rm -r $localDir/logs
 mkdir $localDir/logs
