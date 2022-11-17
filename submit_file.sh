@@ -40,6 +40,6 @@ else
 fi
 
 # save the log file
-cp log.csv  ../logs/log_${SLURM_NTASKS}.csv
+cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
 
 
