@@ -226,7 +226,10 @@ def train(args, train_dataloader, test_dataloader):
     total_train_time = time.time() - train_time
     df_save = pd.DataFrame()
     if args.world_rank == 0:
-
+        torch.save(
+            model,
+            str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
+        )
         # df_save = pd.DataFrame()
         df_save["time_per_epoch"] = time_per_epoch
         df_save["loss"] = train_loss
