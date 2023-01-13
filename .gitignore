@@ -5,6 +5,6 @@ __pycache__
 **/.ipynb_checkpoints
 **/*.hdf5
 **/*.npy
-mito*/*
+Indents*/*
 models_*/*
 **/*.pi
