@@ -21,10 +21,10 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
-    # optimised for 80 epochs
+    # optimised for 150 epochs
     for pm in optimizer.param_groups:
         # print(epoch, pm["lr"])
-        if epoch < 60:
+        if epoch < 100:
             pm["lr"] = lr * num_workers
         # if epoch == 0:
         #     pm["lr"] = lr
@@ -33,9 +33,9 @@ def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
         #     pm["lr"] = pm["lr"] + increment
         # elif epoch >= 10 and epoch < 40:
         #     pm["lr"] = lr * num_workers
-        elif epoch >= 60 and epoch < 70:
+        elif epoch >= 100 and epoch < 120:
             pm["lr"] = lr / 2 * num_workers
-        elif epoch >= 70 and epoch <= 80:
+        elif epoch >= 120 and epoch <= 150:
             pm["lr"] = lr / 4 * num_workers
         # elif epoch >= 70:
         #     pm["lr"] = lr / 8 * num_workers
@@ -52,14 +52,14 @@ def dataset(args, image_dir, mask_dir):
     print(len(images))
     # split in train and test
     tr_images, ts_images, tr_masks, ts_masks = train_test_split(
-        images, masks, test_size=0.3, random_state=42
+        images, masks, test_size=0.2, random_state=42
     )
     # repeat dataset
     repeat = args.repeat
     train_im = tr_images * repeat
     train_ma = tr_masks * repeat
-    test_im = ts_images * repeat
-    test_ma = ts_masks * repeat
+    test_im = ts_images  # * repeat
+    test_ma = ts_masks  # * repeat
 
     if args.augment == 0:
         augment = False
@@ -185,6 +185,7 @@ def train(args, train_dataloader, test_dataloader):
                 model.eval()
             # loop over the validation set
             for (x, y) in test_dataloader:
+
                 # send the input to the device
                 (x, y) = (x.to(args.device), y.to(args.device))
                 # make the predictions and calculate the validation loss
@@ -417,13 +418,13 @@ if __name__ == "__main__":
         "--image_dir",
         type=str,
         help="directory of images",
-        default=str(os.environ["WORK"]) + "/patches_mito/images_jpg",
+        default=str(os.environ["WORK"]) + "/images_collective",
     )
     parser.add_argument(
         "--mask_dir",
         type=str,
         help="directory of masks",
-        default=str(os.environ["WORK"]) + "/patches_mito/masks_jpg",
+        default=str(os.environ["WORK"]) + "/masks_collective",
     )
     parser.add_argument("--augment", type=int, help="0 is False, 1 is True", default=0)
     parser.add_argument(

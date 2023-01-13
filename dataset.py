@@ -11,6 +11,37 @@ import cv2
 # from PIL import Image
 
 
+class Resize_with_pad:
+    def __init__(self, w=1024, h=768):
+        self.w = w
+        self.h = h
+
+    def __call__(self, image):
+
+        w_1, h_1 = image.size
+        ratio_f = self.w / self.h
+        ratio_1 = w_1 / h_1
+
+        # check if the original and final aspect ratios are the same within a margin
+        if round(ratio_1, 2) != round(ratio_f, 2):
+
+            # padding to preserve aspect ratio
+            wp = int(ratio_f * h_1 - w_1)
+            hp = int(w_1 / ratio_f - h_1)
+            if hp > 0 and wp < 0:
+                hp = hp // 2
+                image = F.pad(image, (0, hp, 0, hp), 0, "constant")
+                return F.resize(image, [self.h, self.w])
+
+            elif hp < 0 and wp > 0:
+                wp = wp // 2
+                image = F.pad(image, (wp, 0, wp, 0), 0, "constant")
+                return F.resize(image, [self.h, self.w])
+
+        else:
+            return F.resize(image, [self.h, self.w])
+
+
 class Segmentation_dataset(Dataset):
     def __init__(self, image_dir, mask_dir, images, masks, augment=False):
         self.images = images
@@ -23,15 +54,15 @@ class Segmentation_dataset(Dataset):
 
         # Resize
 
-        # pil_image = trans.ToPILImage()
-        # resize = Resize_with_pad(w=1024, h=768)
-        # image = resize(pil_image(image))
-        # mask = resize(pil_image(mask))
+        pil_image = trans.ToPILImage()
+        resize = Resize_with_pad(w=1024, h=768)
+        image = resize(pil_image(image))
+        mask = resize(pil_image(mask))
 
         # augment
-        # if self.augment:
-        #   jitter = trans.ColorJitter(brightness=0.3, contrast=0.3)
-        #   image = jitter(image)
+        if self.augment:
+            jitter = trans.ColorJitter(brightness=0.3, contrast=0.3)
+            image = jitter(image)
 
         # # Random horizontal flipping
 
@@ -46,12 +77,11 @@ class Segmentation_dataset(Dataset):
         #   mask = F.vflip(mask)
 
         # to_tensor
-        # image = F.to_tensor(image)
-        # mask = F.to_tensor(mask)
-        # mask[mask>0.8] = 1
-        # mask[mask<0.2] = 0
-        # shape = image.shape
-        # mask = torch.tensor(np.array(mask).astype(np.int32).reshape(shape))
+        image = F.to_tensor(image)
+        mask = F.to_tensor(mask)
+        mask[mask > 0.8] = 1
+        mask[mask < 0.2] = 0
+        # mask[mask > 0.003] = 1
 
         return image, mask
 
@@ -66,17 +96,12 @@ class Segmentation_dataset(Dataset):
         # check if cv2 is faster
         img = cv2.imread(img_path).astype(np.float32) / 255.0
         mask = cv2.imread(msk_path).astype(np.float32) / 255.0
-        mask[mask > 0.8] = 1
-        mask[mask < 0.2] = 0
+
         # make sure channel n is 1
         img = img[:, :, 0:1]
         mask = mask[:, :, 0:1]
 
-        # np to Tensor
-        img = trans.ToTensor()(img)
-        mask = trans.ToTensor()(mask)
-
-        # transforms
-        # img, mask = self.transform(img, mask)
+        # transfrom
+        img, mask = self.transfrom(img, mask)
 
         return img, mask
