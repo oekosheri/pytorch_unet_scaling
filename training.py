@@ -1,5 +1,5 @@
 import os
-import sys
+import sys, glob
 import math
 import argparse
 import torch
@@ -47,6 +47,11 @@ def get_lr(optimizer):
 
 
 def dataset(args, image_dir, mask_dir):
+
+    # images = glob.glob(image_dir + "/*.png")
+    # images.sort()
+    # masks = glob.glob(mask_dir + "/*.png")
+    # masks.sort()
     images = sorted(os.listdir(image_dir))
     masks = sorted(os.listdir(mask_dir))
     print(len(images))
@@ -412,7 +417,7 @@ if __name__ == "__main__":
     parser.add_argument("--global_batch_size", type=int, help="8 or 16 or 32")
     # parser.add_argument("--device", type=str, help="cuda" or "cpu", default="cuda")
     parser.add_argument("--lr", type=float, help="ex. 0.001", default=0.001)
-    parser.add_argument("--repeat", type=int, help="for dataset repeat", default=1)
+    parser.add_argument("--repeat", type=int, help="for dataset repeat", default=2)
     parser.add_argument("--epoch", type=int, help="iterations")
     parser.add_argument(
         "--image_dir",

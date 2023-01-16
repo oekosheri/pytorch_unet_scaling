@@ -1,5 +1,5 @@
 #!/usr/local_rwth/bin/zsh
-#SBATCH --time=2:30:00
+#SBATCH --time=4:30:00
 #SBATCH --partition=c18g
 #SBATCH --nodes=tag_node
 #SBATCH --ntasks-per-node=tag_task
@@ -30,13 +30,13 @@ command=tag_command
 if [ $command = 1 ]
 
 then
-    
+
     eval  "${comm_1}"
-    
+
 else
-    
+
     eval  "${comm_2}"
-    
+
 fi
 
 # save the log file
