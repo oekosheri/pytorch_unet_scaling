@@ -10,10 +10,10 @@ bs=16
 name="Indents_"
 
 
-rm -r $localDir/Logs
-mkdir $localDir/Logs
+# rm -r $localDir/Logs
+# mkdir $localDir/Logs
 
-for gpu in  1 2 4
+for gpu in   1 2 4 6 8 10 12 14
 do
 
     for cpu in 12
