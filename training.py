@@ -151,7 +151,7 @@ def train(args, train_dataloader, test_dataloader):
     # loop over epochs
     train_time = time.time()
 
-    print("[INFO]  vtraining the network...")
+    print("[INFO]  training the network...")
 
     for e in range(args.epoch):
 
