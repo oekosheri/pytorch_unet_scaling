@@ -114,6 +114,8 @@ def train(args, train_dataloader, test_dataloader):
     # print("Train B,C,H,W", B, C, H, W)
 
     # get model
+    print("Creating the model ...")
+    sys.stdout.flush()
     model = Unet(num_class=1).to(args.device)
     # torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if args.distributed:
@@ -125,6 +127,8 @@ def train(args, train_dataloader, test_dataloader):
         )
 
     # initialize loss function and optimizer
+    print("Creating the loss and optimizer ...")
+    sys.stdout.flush()
     lossFunc = BCEWithLogitsLoss()
     opt = Adam(model.parameters(), lr=args.lr)
 
@@ -152,6 +156,7 @@ def train(args, train_dataloader, test_dataloader):
     train_time = time.time()
 
     print("[INFO]  training the network...")
+    sys.stdout.flush()
 
     for e in range(args.epoch):
 
@@ -232,10 +237,10 @@ def train(args, train_dataloader, test_dataloader):
     total_train_time = time.time() - train_time
     df_save = pd.DataFrame()
     if args.world_rank == 0:
-        torch.save(
-            model,
-            str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
-        )
+        # torch.save(
+        #     model,
+        #     str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
+        # )
         # df_save = pd.DataFrame()
         df_save["time_per_epoch"] = time_per_epoch
         df_save["loss"] = train_loss
@@ -358,6 +363,7 @@ def main(args):
         args.local_rank,
     )
     # Device configuration
+    print(f"Cuda available: {torch.cuda.is_available()} - Device count: {torch.cuda.device_count()}")
     args.use_gpu = torch.cuda.is_available() and torch.cuda.device_count() > 0
     if args.use_gpu:
         torch.backends.cudnn.benchmark = True  # enable built-in cuda auto tuner

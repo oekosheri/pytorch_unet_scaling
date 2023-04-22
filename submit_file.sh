@@ -5,18 +5,16 @@
 #SBATCH --ntasks-per-node=tag_task
 #SBATCH --cpus-per-task=tag_cpu
 #SBATCH --gres=gpu:tag_task
-#SBATCH --account=rwth1223
+#SBATCH --account=rwth0900
 
-
-source ~/.zshrc
-conda activate torch11
-
+module load python
 
 module list
 echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
 echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
 echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
 
+nvidia-smi
 
 comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c '\
 source setup.sh  && bash script.sh'"
@@ -40,6 +38,6 @@ else
 fi
 
 # save the log file
-cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
+# cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
 
 
