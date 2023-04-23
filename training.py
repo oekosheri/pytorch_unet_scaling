@@ -155,10 +155,8 @@ def train(args, train_dataloader, test_dataloader):
     sys.stdout.flush()
 
     for e in range(args.epoch):
-
-        model.train()
         # set the model in training mode
-        # model.train()
+        model.train()
         # initialize the total training and validation loss
         totalTrainLoss = 0
         totalTestLoss = 0
@@ -166,7 +164,6 @@ def train(args, train_dataloader, test_dataloader):
         elapsed_train = time.time()
         # loop over the training set
         for (i, (x, y)) in enumerate(train_dataloader):
-
             # send the input to the device
             (x, y) = (
                 x.to(args.device, non_blocking=True),
@@ -186,15 +183,13 @@ def train(args, train_dataloader, test_dataloader):
         with torch.no_grad():
             # set the model in evaluation mode
             model.eval()
-
             # loop over the validation set
             for (x, y) in test_dataloader:
-
                 # send the input to the device
                 (x, y) = (x.to(args.device), y.to(args.device))
                 # make the predictions and calculate the validation loss
                 pred = model(x)
-
+                # add the loss to the total test loss so far
                 totalTestLoss += lossFunc(pred, y).item()
 
         elapsed_train = time.time() - elapsed_train
@@ -210,7 +205,6 @@ def train(args, train_dataloader, test_dataloader):
 
         # print the model training and time every epoch
         if args.world_rank == 0:
-
             train_loss.append(avgTrainLoss)
             test_loss.append(avgTestLoss)
             time_per_epoch.append(elapsed_train)
@@ -266,24 +260,15 @@ def test(args, model, test_dataloader, df_save):
     s = 0
     elapsed_eval = time.time()
 
-    # if args.distributed:
-    #     model.module.eval()
-    # else:
-    #     model.eval()
-
     with torch.no_grad():
         model.eval()
         # loop over the validation set
         for (x, y) in test_dataloader:
             # send the input to the device
             (x, y) = (x.to(args.device), y.to(args.device))
-            # make the predictions and calculate the validation loss
-            # if args.distributed:
-            #     pred = model.module(x)
-            # else:
-            #     pred = model(x)
+            # make the predictions
             pred = model(x)
-
+            # calculate the validation loss
             totalTestLoss += lossFunc(pred, y).item()
             # filling empty valid set tensors
             # print("x,y shape:", x.shape, y.shape)
