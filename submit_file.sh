@@ -7,9 +7,8 @@
 #SBATCH --gres=gpu:tag_task
 #SBATCH --account=rwth0900
 
-module purge
-module load GCC/10.3.0  OpenMPI/4.1.1 Python CUDA/11.3.1 cuDNN/8.2.1.32-CUDA-11.3.1 NCCL CMake
-source ../horovod-env/bin/activate
+source ../../load_env_centos.sh
+source ../../horovod-env-centos/bin/activate
 
 module list
 echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
