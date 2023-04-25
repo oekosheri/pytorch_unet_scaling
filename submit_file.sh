@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=tag_task
 #SBATCH --cpus-per-task=tag_cpu
 #SBATCH --gres=gpu:tag_task
-#SBATCH --account=rwth0900
+#SBATCH --account=rwth1223
 
 source ../environments/load_env_rocky.sh
 source ../environments/horovod-env-rocky/bin/activate
