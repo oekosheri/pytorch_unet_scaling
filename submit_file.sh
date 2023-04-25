@@ -7,8 +7,10 @@
 #SBATCH --gres=gpu:tag_task
 #SBATCH --account=rwth0900
 
-source ../../load_env_centos.sh
-source ../../horovod-env-centos/bin/activate
+source ../environments/load_env_rocky.sh
+source ../environments/horovod-env-rocky/bin/activate
+# source ../environments/load_env_centos.sh
+# source ../environments/horovod-env-centos/bin/activate
 
 module list
 echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
