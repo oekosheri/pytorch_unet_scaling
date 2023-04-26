@@ -5,7 +5,7 @@ program=$localDir/training.py
 setup=$localDir/setup_dist_env.sh
 
 
-epochs=2
+epochs=150
 bs=16
 name="Indents_"
 
@@ -22,9 +22,10 @@ do
         for augment in 0
         do
 
-            RESULT_DIR="$localDir/$name$gpu-$augment-$cpu"
-            mkdir -p ${RESULT_DIR}
-            cd ${RESULT_DIR}
+
+            mkdir -p $localDir/$name$gpu$augment$cpu
+            cd $localDir/$name$gpu$augment$cpu
+
 
             if [ $gpu = 1 ]
             then

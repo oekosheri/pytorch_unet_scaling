@@ -8,18 +8,16 @@
 #SBATCH --account=rwth1223
 
 
-source ../environments/load_env_rocky.sh
-source ../environments/horovod-env-rocky/bin/activate
-# source ../environments/load_env_centos.sh
-# source ../environments/horovod-env-centos/bin/activate
+source ~/.zshrc
+conda activate torch11
 
-
+# module purge
+# module load iimpi/2019b
 module list
 echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
 echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
 echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
 
-nvidia-smi
 
 comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c '\
 source setup.sh  && bash script.sh'"
@@ -43,8 +41,6 @@ else
 fi
 
 # save the log file
-
-# cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
-
+cp log_1.csv  ../Logs/log_1_${SLURM_NTASKS}.csv
 
 
