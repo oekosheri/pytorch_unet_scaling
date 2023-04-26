@@ -9,13 +9,12 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 from dataset import Segmentation_dataset
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.distributed as dist
 import time
 from datetime import timedelta
 from models import Unet
 from metric_losses import jaccard_coef
 import ssl
+import horovod.torch as hvd
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -85,7 +84,7 @@ def dataset(args, image_dir, mask_dir):
         if distribute:
             ds_sampler = DistributedSampler(
                 dataset=ds,
-                shuffle=True,
+                #shuffle=True,
                 num_replicas=args.world_size,
                 rank=args.world_rank,
             )
@@ -94,7 +93,7 @@ def dataset(args, image_dir, mask_dir):
             dataset=ds,
             batch_size=args.local_batch_size if distribute else args.global_batch_size,
             pin_memory=args.use_gpu,
-            shuffle=ds_sampler is None,
+            #shuffle=True,
             sampler=ds_sampler,
             drop_last=True,
         )
@@ -114,19 +113,20 @@ def train(args, train_dataloader, test_dataloader):
     # print("Train B,C,H,W", B, C, H, W)
 
     # get model
+    print("Creating the model ...")
+    sys.stdout.flush()
     model = Unet(num_class=1).to(args.device)
-    # torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if args.distributed:
-        dist.barrier()
-        model = (
-            DDP(model, device_ids=[args.local_rank], bucket_cap_mb=args.bucket_cap_mb)
-            if args.use_gpu
-            else DDP(model, bucket_cap_mb=args.bucket_cap_mb)
-        )
 
     # initialize loss function and optimizer
+    print("Creating the loss and optimizer ...")
+    sys.stdout.flush()
     lossFunc = BCEWithLogitsLoss()
     opt = Adam(model.parameters(), lr=args.lr)
+    opt = hvd.DistributedOptimizer(opt, named_parameters=model.named_parameters(), op=hvd.Average)
+
+    # Horovod: broadcast parameters & optimizer state.
+    hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+    hvd.broadcast_optimizer_state(opt, root_rank=0)
 
     # decayRate = 0.9
     # my_lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
@@ -152,12 +152,11 @@ def train(args, train_dataloader, test_dataloader):
     train_time = time.time()
 
     print("[INFO]  training the network...")
+    sys.stdout.flush()
 
     for e in range(args.epoch):
-
-        model.train()
         # set the model in training mode
-        # model.train()
+        model.train()
         # initialize the total training and validation loss
         totalTrainLoss = 0
         totalTestLoss = 0
@@ -165,7 +164,6 @@ def train(args, train_dataloader, test_dataloader):
         elapsed_train = time.time()
         # loop over the training set
         for (i, (x, y)) in enumerate(train_dataloader):
-
             # send the input to the device
             (x, y) = (
                 x.to(args.device, non_blocking=True),
@@ -184,21 +182,14 @@ def train(args, train_dataloader, test_dataloader):
 
         with torch.no_grad():
             # set the model in evaluation mode
-            if args.distributed:
-                model.module.eval()
-            else:
-                model.eval()
+            model.eval()
             # loop over the validation set
             for (x, y) in test_dataloader:
-
                 # send the input to the device
                 (x, y) = (x.to(args.device), y.to(args.device))
                 # make the predictions and calculate the validation loss
-                if args.distributed:
-                    pred = model.module(x)
-                else:
-                    pred = model(x)
-
+                pred = model(x)
+                # add the loss to the total test loss so far
                 totalTestLoss += lossFunc(pred, y).item()
 
         elapsed_train = time.time() - elapsed_train
@@ -214,7 +205,6 @@ def train(args, train_dataloader, test_dataloader):
 
         # print the model training and time every epoch
         if args.world_rank == 0:
-
             train_loss.append(avgTrainLoss)
             test_loss.append(avgTestLoss)
             time_per_epoch.append(elapsed_train)
@@ -232,10 +222,10 @@ def train(args, train_dataloader, test_dataloader):
     total_train_time = time.time() - train_time
     df_save = pd.DataFrame()
     if args.world_rank == 0:
-        torch.save(
-            model,
-            str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
-        )
+        # torch.save(
+        #     model,
+        #     str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
+        # )
         # df_save = pd.DataFrame()
         df_save["time_per_epoch"] = time_per_epoch
         df_save["loss"] = train_loss
@@ -270,24 +260,15 @@ def test(args, model, test_dataloader, df_save):
     s = 0
     elapsed_eval = time.time()
 
-    # if args.distributed:
-    #     model.module.eval()
-    # else:
-    #     model.eval()
-
     with torch.no_grad():
         model.eval()
         # loop over the validation set
         for (x, y) in test_dataloader:
             # send the input to the device
             (x, y) = (x.to(args.device), y.to(args.device))
-            # make the predictions and calculate the validation loss
-            # if args.distributed:
-            #     pred = model.module(x)
-            # else:
-            #     pred = model(x)
+            # make the predictions
             pred = model(x)
-
+            # calculate the validation loss
             totalTestLoss += lossFunc(pred, y).item()
             # filling empty valid set tensors
             # print("x,y shape:", x.shape, y.shape)
@@ -328,27 +309,17 @@ def main(args):
     print(args.world_size)
     sys.stdout.flush()
 
+    torch.manual_seed(42)
+
     if args.distributed:
-        tmp_file_init = (
-            os.environ["PYTORCH_INIT_FILE"]
-            if "PYTORCH_INIT_FILE" in os.environ
-            else "pytorch_init.pi"
-        )
-        tmp_file_init = "file://" + os.path.join(path_this_script, tmp_file_init)
         args.world_rank = int(os.environ["RANK"])
         args.local_rank = int(os.environ["LOCAL_RANK"])
         print(args.world_rank, args.local_rank)
         sys.stdout.flush()
 
-        # print(args.backend, args.world_size, args.world_rank, args.local_rank, tmp_file_init)
-        dist.init_process_group(
-            args.backend,
-            timeout=timedelta(seconds=120),
-            rank=args.world_rank,
-            world_size=args.world_size,
-            init_method=tmp_file_init,
-        )
-        dist.barrier()  # wait until all ranks have arrived
+    hvd.init()
+    hvd.allreduce(torch.tensor([0]), name="Barrier")
+
     args.local_batch_size = math.ceil(args.global_batch_size / args.world_size)
 
     print(
@@ -358,10 +329,12 @@ def main(args):
         args.local_rank,
     )
     # Device configuration
+    print(f"Cuda available: {torch.cuda.is_available()} - Device count: {torch.cuda.device_count()}")
     args.use_gpu = torch.cuda.is_available() and torch.cuda.device_count() > 0
     if args.use_gpu:
         torch.backends.cudnn.benchmark = True  # enable built-in cuda auto tuner
         torch.cuda.set_device(args.local_rank)
+        torch.cuda.manual_seed(42)
         args.device = torch.device("cuda:%d" % args.local_rank)
     else:
         args.device = "cpu"
@@ -385,7 +358,7 @@ def main(args):
     masks = sorted(os.listdir(mask_dir))
 
     if args.distributed:
-        dist.barrier()
+        hvd.allreduce(torch.tensor([0]), name="Barrier")
 
     train_dataloader, test_dataloader = dataset(args, image_dir, mask_dir)
     if args.world_rank == 0:
@@ -399,7 +372,7 @@ def main(args):
     #     sys.stdout.flush()
 
     if args.distributed:
-        dist.barrier()
+        hvd.allreduce(torch.tensor([0]), name="Barrier")
 
     if args.world_rank == 0:
         df_save = test(args, model, test_dataloader, df_save)
@@ -407,8 +380,7 @@ def main(args):
     df_save.to_csv("./log.csv", sep=",", float_format="%.6f")
     # destory the process group again
     if args.distributed:
-        dist.barrier()
-        dist.destroy_process_group()
+        hvd.allreduce(torch.tensor([0]), name="Barrier")
 
 
 if __name__ == "__main__":
