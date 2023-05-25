@@ -8,5 +8,5 @@ __pycache__
 Indents*/*
 models_*/*
 **/*.pi
-horovod-env*/*
+**/horovod-env*/*
 
