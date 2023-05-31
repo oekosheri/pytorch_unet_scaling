@@ -377,7 +377,7 @@ def main(args):
     if args.world_rank == 0:
         df_save = test(args, model, test_dataloader, df_save)
 
-    df_save.to_csv("./log_1.csv", sep=",", float_format="%.6f")
+    df_save.to_csv("./log.csv", sep=",", float_format="%.6f")
     # destory the process group again
     if args.distributed:
         hvd.allreduce(torch.tensor([0]), name="Barrier")
