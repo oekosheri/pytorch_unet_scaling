@@ -85,8 +85,8 @@ def dataset(args, image_dir, mask_dir):
             ds_sampler = DistributedSampler(
                 dataset=ds,
                 #shuffle=True,
-                num_replicas=args.world_size,
-                rank=args.world_rank,
+                num_replicas=hvd.size(),
+                rank=hvd.rank(),
             )
 
         data_loader = DataLoader(
@@ -145,7 +145,7 @@ def train(args, train_dataloader, test_dataloader):
     lr_save = []
     trainSteps = len(train_dataloader)
     testSteps = len(test_dataloader)
-    if args.world_rank == 0:
+    if hvd.rank() == 0:
         print(trainSteps)
         sys.stdout.flush()
     # loop over epochs
@@ -194,7 +194,7 @@ def train(args, train_dataloader, test_dataloader):
 
         elapsed_train = time.time() - elapsed_train
         lr_save.append(get_lr(opt))
-        custom_lr(opt, e + 1, lr=args.lr, num_workers=args.world_size)
+        custom_lr(opt, e + 1, lr=args.lr, num_workers=hvd.size())
 
         # my_lr_scheduler.step()
         # print(my_lr_scheduler.get_last_lr())
@@ -204,7 +204,7 @@ def train(args, train_dataloader, test_dataloader):
         # update our training history
 
         # print the model training and time every epoch
-        if args.world_rank == 0:
+        if hvd.rank() == 0:
             train_loss.append(avgTrainLoss)
             test_loss.append(avgTestLoss)
             time_per_epoch.append(elapsed_train)
@@ -221,7 +221,7 @@ def train(args, train_dataloader, test_dataloader):
 
     total_train_time = time.time() - train_time
     df_save = pd.DataFrame()
-    if args.world_rank == 0:
+    if hvd.rank() == 0:
         # torch.save(
         #     model,
         #     str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
@@ -298,53 +298,56 @@ def test(args, model, test_dataloader, df_save):
 
 def main(args):
 
-    path_this_script = os.path.dirname(os.path.abspath(__file__))
-    args.distributed = False
-    args.world_size = 1
-    if "WORLD_SIZE" in os.environ:
-        args.world_size = int(os.environ["WORLD_SIZE"])
-        args.distributed = args.world_size > 1
+    # path_this_script = os.path.dirname(os.path.abspath(__file__))
+    # args.distributed = False
+    # # args.world_size = 1
+    # if "WORLD_SIZE" in os.environ:
+    #     args.world_size = int(os.environ["WORLD_SIZE"])
+    #     args.distributed = args.world_size > 1
+    # if hvd.size() > 0:
 
-    args.world_rank = args.local_rank = 0
-    print(args.world_size)
-    sys.stdout.flush()
+    # args.world_rank = args.local_rank = 0
+    # print(args.world_size)
+    # sys.stdout.flush()
 
     torch.manual_seed(42)
 
-    if args.distributed:
-        args.world_rank = int(os.environ["RANK"])
-        args.local_rank = int(os.environ["LOCAL_RANK"])
-        print(args.world_rank, args.local_rank)
-        sys.stdout.flush()
+    # if args.distributed:
+    #     args.world_rank = int(os.environ["RANK"])
+    #     args.local_rank = int(os.environ["LOCAL_RANK"])
+    #     print(args.world_rank, args.local_rank)
+    #     sys.stdout.flush()
 
     hvd.init()
     hvd.allreduce(torch.tensor([0]), name="Barrier")
 
-    args.local_batch_size = math.ceil(args.global_batch_size / args.world_size)
+    args.local_batch_size = math.ceil(args.global_batch_size / hvd.size())
 
-    print(
-        "world size, world rank, local rank",
-        args.world_size,
-        args.world_rank,
-        args.local_rank,
-    )
+    args.distributed = hvd.size() > 0
+
+    # print(
+    #     "world size, world rank, local rank",
+    #     args.world_size,
+    #     args.world_rank,
+    #     args.local_rank,
+    # )
     # Device configuration
     print(f"Cuda available: {torch.cuda.is_available()} - Device count: {torch.cuda.device_count()}")
     args.use_gpu = torch.cuda.is_available() and torch.cuda.device_count() > 0
     if args.use_gpu:
         torch.backends.cudnn.benchmark = True  # enable built-in cuda auto tuner
-        torch.cuda.set_device(args.local_rank)
+        torch.cuda.set_device(hvd.local_rank())
         torch.cuda.manual_seed(42)
-        args.device = torch.device("cuda:%d" % args.local_rank)
-    else:
-        args.device = "cpu"
-        torch.set_num_interop_threads(args.num_interop_threads)
-        if args.world_rank == 0:
-            print("Using CPU Inter-Op Threads: ", torch.get_num_interop_threads())
-            print("Using CPU Intra-Op Threads: ", torch.get_num_threads())
-            print("Using CPU Proceses: ", args.world_size)
+        args.device = torch.device("cuda:%d" % hvd.local_rank())
+    # else:
+    #     args.device = "cpu"
+    #     torch.set_num_interop_threads(args.num_interop_threads)
+    #     if args.world_rank == 0:
+    #         print("Using CPU Inter-Op Threads: ", torch.get_num_interop_threads())
+    #         print("Using CPU Intra-Op Threads: ", torch.get_num_threads())
+    #         print("Using CPU Proceses: ", args.world_size)
 
-    if args.world_rank == 0:
+    if hvd.rank() == 0:
         print("PyTorch Settings:")
         settings_map = vars(args)
         for name in sorted(settings_map.keys()):
@@ -359,9 +362,11 @@ def main(args):
 
     if args.distributed:
         hvd.allreduce(torch.tensor([0]), name="Barrier")
+    print(hvd.rank())
+    sys.stdout.flush()
 
     train_dataloader, test_dataloader = dataset(args, image_dir, mask_dir)
-    if args.world_rank == 0:
+    if hvd.rank() == 0:
         print(len(train_dataloader), len(test_dataloader))
         sys.stdout.flush()
 
@@ -374,7 +379,7 @@ def main(args):
     if args.distributed:
         hvd.allreduce(torch.tensor([0]), name="Barrier")
 
-    if args.world_rank == 0:
+    if hvd.rank() == 0:
         df_save = test(args, model, test_dataloader, df_save)
 
     df_save.to_csv("./log.csv", sep=",", float_format="%.6f")

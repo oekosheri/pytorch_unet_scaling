@@ -5,12 +5,12 @@ import torch.multiprocessing as mp
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data.distributed
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from torch.nn import BCEWithLogitsLoss
 from torchvision import datasets, transforms, models
 import horovod.torch as hvd
 from sklearn.model_selection import train_test_split
-import os
+import os, sys
 import math
 from tqdm import tqdm
 from models import Unet
@@ -21,10 +21,10 @@ import time
 
 parser = argparse.ArgumentParser(description='Elastic PyTorch UNET training',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--train-dir', default=os.path.expanduser('~/imagenet/train'),
-                    help='path to training data')
-parser.add_argument('--val-dir', default=os.path.expanduser('~/imagenet/validation'),
-                    help='path to validation data')
+# parser.add_argument('--train-dir', default=os.path.expanduser('~/imagenet/train'),
+#                     help='path to training data')
+# parser.add_argument('--val-dir', default=os.path.expanduser('~/imagenet/validation'),
+#                     help='path to validation data')
 parser.add_argument('--log-dir', default='./logs',
                     help='tensorboard log directory')
 parser.add_argument('--checkpoint-format', default='./checkpoint-{epoch}.pth.tar',
@@ -48,9 +48,9 @@ parser.add_argument('--batches-per-host-check', type=int, default=10,
                          'this check is very fast compared to state.commit() (which calls this '
                          'as part of the commit process), but because still incurs some cost due '
                          'to broadcast, so we may not want to perform it every batch.')
-parser.add_argument('--batch-size', type=int, default=32,
+parser.add_argument('--batch-size', type=int, default=16,
                     help='input batch size for training')
-parser.add_argument('--val-batch-size', type=int, default=32,
+parser.add_argument('--val-batch-size', type=int, default=16,
                     help='input batch size for validation')
 parser.add_argument('--epochs', type=int, default=90,
                     help='number of epochs to train')
@@ -71,15 +71,15 @@ parser.add_argument(
     "--image_dir",
     type=str,
     help="directory of images",
-    default="./images_collective",
+    default=str(os.environ["WORK"]) + "/images_collective",
 )
 parser.add_argument(
     "--mask_dir",
     type=str,
     help="directory of masks",
-    default="./masks_collective",
+    default=str(os.environ["WORK"]) + "/masks_collective",
 )
-parser.add_argument("--repeat", type=int, help="for dataset repeat", default=1)
+parser.add_argument("--repeat", type=int, help="for dataset repeat", default=2)
 parser.add_argument("--augment", type=int, help="0 is False, 1 is True", default=0)
 lossFunc = BCEWithLogitsLoss()
 
@@ -207,11 +207,12 @@ def train(state):
     toc = time.time()
 
     if log_writer:
-        log_writer.add_scalar('train/loss', train_loss.avg, epoch)
-        log_writer.add_scalar('train/accuracy', train_accuracy.avg, epoch)
-        log_writer.add_scalar('train/time', toc-tic, epoch)
-
+        # log_writer.add_scalar('train/loss', train_loss.avg, epoch)
+        # log_writer.add_scalar('train/accuracy', train_accuracy.avg, epoch)
+        # log_writer.add_scalar('train/time', toc-tic, epoch)
+        return train_loss.avg, toc-tic
     state.commit()
+
 
 
 def validate(epoch):
@@ -257,10 +258,13 @@ def validate(epoch):
     toc = time.time()
 
     if log_writer:
-        log_writer.add_scalar('val/loss', val_loss.avg, epoch)
-        log_writer.add_scalar('val/loss', val_loss.avg, epoch)
-        log_writer.add_scalar('val/IOU', IOU, epoch)
-        log_writer.add_scalar('val/time', toc-tic, epoch)
+        # log_writer.add_scalar('val/loss', val_loss.avg, epoch)
+        # log_writer.add_scalar('val/loss', val_loss.avg, epoch)
+        # log_writer.add_scalar('val/IOU', IOU, epoch)
+        # log_writer.add_scalar('val/time', toc-tic, epoch)
+        return val_loss.avg, IOU
+
+
 
 # From horovod documentation. Not in use.
 def adjust_learning_rate(epoch, batch_idx):
@@ -319,12 +323,17 @@ class Metric(object):
 
 @hvd.elastic.run
 def full_train(state):
+    import pandas as pd
+    df = pd.DataFrame(columns=('time_per_epoch','loss','val_loss','iou'))
     while state.epoch < args.epochs:
-        train(state)
-        validate(state.epoch)
+        loss, time = train(state)
+        hvd.allreduce(torch.tensor([0]), name="Barrier")
+        val_loss, iou = validate(state.epoch)
+        df.loc[state.epoch] = [time, loss, val_loss, iou]
         #save_checkpoint(state.epoch)
         end_epoch(state)
-
+    hvd.allreduce(torch.tensor([0]), name="Barrier")
+    df.to_csv("./log.csv", sep=",", float_format="%.6f")
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -343,8 +352,8 @@ if __name__ == '__main__':
 
     verbose = 1 if hvd.rank() == 0 else 0
 
-    log_writer = SummaryWriter(args.log_dir) if hvd.rank() == 0 else None
-
+    # log_writer = SummaryWriter(args.log_dir) if hvd.rank() == 0 else None
+    log_writer = True if hvd.rank() == 0 else None
     torch.set_num_threads(4)
 
     kwargs = {'num_workers': 4, 'pin_memory': True} if args.cuda else {}
@@ -358,6 +367,9 @@ if __name__ == '__main__':
     masks = sorted(os.listdir(mask_dir))
     train_sampler, train_loader, val_sampler, val_loader = dataset(args, image_dir, mask_dir)
 
+    print("data loader size:", len(train_loader), len(val_loader))
+    print("horovod size, rank:", hvd.size(), hvd.rank())
+    sys.stdout.flush()
     model = Unet(num_class=1)
 
     lr_scaler = args.batches_per_allreduce * hvd.size() if not args.use_adasum else 1

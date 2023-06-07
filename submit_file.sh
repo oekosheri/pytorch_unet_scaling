@@ -14,10 +14,10 @@ source ../environments/horovod-env-rocky/bin/activate
 # source ../environments/horovod-env-centos/bin/activate
 
 
-module list
-echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
-echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
-echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
+# module list
+# echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
+# echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
+# echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
 
 nvidia-smi
 
@@ -44,7 +44,7 @@ fi
 
 # save the log file
 
-# cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
+cp log.csv  ../Logs/log_hvd_${SLURM_NTASKS}.csv
 
 
 
