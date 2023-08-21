@@ -17,14 +17,14 @@ from models import Unet
 from metric_losses import jaccard_coef
 import ssl
 
-ssl._create_default_https_context = ssl._create_unverified_context
+# ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
     # optimised for 150 epochs
     for pm in optimizer.param_groups:
         # print(epoch, pm["lr"])
-        if epoch < 100:
+        if epoch < 80:
             pm["lr"] = lr * num_workers
         # if epoch == 0:
         #     pm["lr"] = lr
@@ -33,12 +33,12 @@ def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
         #     pm["lr"] = pm["lr"] + increment
         # elif epoch >= 10 and epoch < 40:
         #     pm["lr"] = lr * num_workers
-        elif epoch >= 100 and epoch < 120:
+        elif epoch >= 80 and epoch < 120:
             pm["lr"] = lr / 2 * num_workers
-        elif epoch >= 120 and epoch <= 150:
+        elif epoch >= 120 and epoch < 150:
             pm["lr"] = lr / 4 * num_workers
-        # elif epoch >= 70:
-        #     pm["lr"] = lr / 8 * num_workers
+        elif epoch >= 150:
+            pm["lr"] = lr / 8 * num_workers
 
 
 def get_lr(optimizer):
@@ -47,7 +47,6 @@ def get_lr(optimizer):
 
 
 def dataset(args, image_dir, mask_dir):
-
     # images = glob.glob(image_dir + "/*.png")
     # images.sort()
     # masks = glob.glob(mask_dir + "/*.png")
@@ -108,7 +107,6 @@ def dataset(args, image_dir, mask_dir):
 
 
 def train(args, train_dataloader, test_dataloader):
-
     # size = next(iter(train_dataloader))[0].shape
     # B, C, H, W = size[0], size[1], size[2], size[3]
     # print("Train B,C,H,W", B, C, H, W)
@@ -154,7 +152,6 @@ def train(args, train_dataloader, test_dataloader):
     print("[INFO]  training the network...")
 
     for e in range(args.epoch):
-
         model.train()
         # set the model in training mode
         # model.train()
@@ -164,8 +161,7 @@ def train(args, train_dataloader, test_dataloader):
         # epoch time
         elapsed_train = time.time()
         # loop over the training set
-        for (i, (x, y)) in enumerate(train_dataloader):
-
+        for i, (x, y) in enumerate(train_dataloader):
             # send the input to the device
             (x, y) = (
                 x.to(args.device, non_blocking=True),
@@ -189,8 +185,7 @@ def train(args, train_dataloader, test_dataloader):
             else:
                 model.eval()
             # loop over the validation set
-            for (x, y) in test_dataloader:
-
+            for x, y in test_dataloader:
                 # send the input to the device
                 (x, y) = (x.to(args.device), y.to(args.device))
                 # make the predictions and calculate the validation loss
@@ -214,7 +209,6 @@ def train(args, train_dataloader, test_dataloader):
 
         # print the model training and time every epoch
         if args.world_rank == 0:
-
             train_loss.append(avgTrainLoss)
             test_loss.append(avgTestLoss)
             time_per_epoch.append(elapsed_train)
@@ -232,10 +226,10 @@ def train(args, train_dataloader, test_dataloader):
     total_train_time = time.time() - train_time
     df_save = pd.DataFrame()
     if args.world_rank == 0:
-        torch.save(
-            model,
-            str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
-        )
+        # torch.save(
+        #     model,
+        #     str(os.environ["WORK"]) + "/models_py/" + str(args.world_size) + "_.pt",
+        # )
         # df_save = pd.DataFrame()
         df_save["time_per_epoch"] = time_per_epoch
         df_save["loss"] = train_loss
@@ -251,7 +245,6 @@ def train(args, train_dataloader, test_dataloader):
 
 
 def test(args, model, test_dataloader, df_save):
-
     size = next(iter(test_dataloader))[0].shape
     B, C, H, W = size[0], size[1], size[2], size[3]
     # print("Test B,C,H,W", B, C, H, W)
@@ -278,7 +271,7 @@ def test(args, model, test_dataloader, df_save):
     with torch.no_grad():
         model.eval()
         # loop over the validation set
-        for (x, y) in test_dataloader:
+        for x, y in test_dataloader:
             # send the input to the device
             (x, y) = (x.to(args.device), y.to(args.device))
             # make the predictions and calculate the validation loss
@@ -316,8 +309,12 @@ def test(args, model, test_dataloader, df_save):
 
 
 def main(args):
+    torch.manual_seed(456)
 
-    path_this_script = os.path.dirname(os.path.abspath(__file__))
+    url = "tcp://" + args.node + ".hpc.itc.rwth-aachen.de:29500"
+    print(url)
+    sys.stdout.flush()
+
     args.distributed = False
     args.world_size = 1
     if "WORLD_SIZE" in os.environ:
@@ -325,28 +322,17 @@ def main(args):
         args.distributed = args.world_size > 1
 
     args.world_rank = args.local_rank = 0
-    print(args.world_size)
-    sys.stdout.flush()
 
     if args.distributed:
-        tmp_file_init = (
-            os.environ["PYTORCH_INIT_FILE"]
-            if "PYTORCH_INIT_FILE" in os.environ
-            else "pytorch_init.pi"
-        )
-        tmp_file_init = "file://" + os.path.join(path_this_script, tmp_file_init)
         args.world_rank = int(os.environ["RANK"])
         args.local_rank = int(os.environ["LOCAL_RANK"])
-        print(args.world_rank, args.local_rank)
-        sys.stdout.flush()
 
-        # print(args.backend, args.world_size, args.world_rank, args.local_rank, tmp_file_init)
         dist.init_process_group(
             args.backend,
             timeout=timedelta(seconds=120),
             rank=args.world_rank,
             world_size=args.world_size,
-            init_method=tmp_file_init,
+            init_method=url,
         )
         dist.barrier()  # wait until all ranks have arrived
     args.local_batch_size = math.ceil(args.global_batch_size / args.world_size)
@@ -362,14 +348,10 @@ def main(args):
     if args.use_gpu:
         torch.backends.cudnn.benchmark = True  # enable built-in cuda auto tuner
         torch.cuda.set_device(args.local_rank)
+        torch.manual_seed(42)
         args.device = torch.device("cuda:%d" % args.local_rank)
     else:
         args.device = "cpu"
-        torch.set_num_interop_threads(args.num_interop_threads)
-        if args.world_rank == 0:
-            print("Using CPU Inter-Op Threads: ", torch.get_num_interop_threads())
-            print("Using CPU Intra-Op Threads: ", torch.get_num_threads())
-            print("Using CPU Proceses: ", args.world_size)
 
     if args.world_rank == 0:
         print("PyTorch Settings:")
@@ -394,17 +376,14 @@ def main(args):
 
     model, df_save = train(args, train_dataloader, test_dataloader)
 
-    # if args.world_rank == 0:
-    #     print("Elapsed execution time: " + str(end_time) + " sec")
-    #     sys.stdout.flush()
+    # if args.distributed:
+    #     dist.barrier()
 
-    if args.distributed:
-        dist.barrier()
+    # if args.world_rank == 0:
+    df_save = test(args, model, test_dataloader, df_save)
 
     if args.world_rank == 0:
-        df_save = test(args, model, test_dataloader, df_save)
-
-    df_save.to_csv("./log_1.csv", sep=",", float_format="%.6f")
+        df_save.to_csv("./log.csv", sep=",", float_format="%.6f")
     # destory the process group again
     if args.distributed:
         dist.barrier()
@@ -412,10 +391,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="Training args")
     parser.add_argument("--global_batch_size", type=int, help="8 or 16 or 32")
-    # parser.add_argument("--device", type=str, help="cuda" or "cpu", default="cuda")
     parser.add_argument("--lr", type=float, help="ex. 0.001", default=0.001)
     parser.add_argument("--repeat", type=int, help="for dataset repeat", default=2)
     parser.add_argument("--epoch", type=int, help="iterations")
@@ -447,13 +424,11 @@ if __name__ == "__main__":
         default="nccl",
     )
     parser.add_argument(
-        "--num_interop_threads",
-        required=False,
-        help="Number of interop threads",
-        type=int,
+        "--node",
+        required=True,
+        type=str,
         default=0,
     )
-
     args = parser.parse_args()
 
     main(args)

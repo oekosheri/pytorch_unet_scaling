@@ -1,11 +1,11 @@
 localDir=`pwd`
 run_file=$localDir/run_file.sh
 submit_file=$localDir/submit_file.sh
-program=$localDir/training.py
+program=$localDir/training_new.py
 setup=$localDir/setup_dist_env.sh
 
 
-epochs=150
+epochs=200
 bs=16
 name="Indents_"
 
@@ -13,7 +13,7 @@ name="Indents_"
 # rm -r $localDir/Logs
 # mkdir $localDir/Logs
 
-for gpu in 1 2 10 12 14
+for gpu in 2
 do
 
     for cpu in 12

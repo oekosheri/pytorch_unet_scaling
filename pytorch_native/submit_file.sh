@@ -1,15 +1,17 @@
 #!/usr/local_rwth/bin/zsh
-#SBATCH --time=10:30:00
+#SBATCH --time=20:30:00
 #SBATCH --partition=c18g
 #SBATCH --nodes=tag_node
 #SBATCH --ntasks-per-node=tag_task
 #SBATCH --cpus-per-task=tag_cpu
 #SBATCH --gres=gpu:tag_task
-#SBATCH --account=rwth1223
 
 
-source ~/.zshrc
-conda activate torch11
+
+# source ../../environments/load_env_rocky.sh
+# source ../../environments/horovod-env-rocky/bin/activate
+source ../../alter_environment/load_env_rocky.sh
+source ../../alter_environment/horovod-env-rocky/bin/activate
 
 # module purge
 # module load iimpi/2019b
@@ -20,9 +22,9 @@ echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
 
 
 comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c '\
-source setup.sh  && bash script.sh'"
+source setup.sh  && bash script.sh ${SLURMD_NODENAME}'"
 
-comm_2="source setup.sh && bash script.sh"
+comm_2="source setup.sh && bash script.sh ${SLURMD_NODENAME}"
 
 
 command=tag_command
@@ -41,6 +43,6 @@ else
 fi
 
 # save the log file
-cp log_1.csv  ../Logs/log_1_${SLURM_NTASKS}.csv
+cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
 
 

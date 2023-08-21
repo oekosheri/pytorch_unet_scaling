@@ -1,30 +1,22 @@
 #!/usr/local_rwth/bin/zsh
-#SBATCH --time=10:30:00
+#SBATCH --time=12:00:00
 #SBATCH --partition=c18g
 #SBATCH --nodes=tag_node
 #SBATCH --ntasks-per-node=tag_task
 #SBATCH --cpus-per-task=tag_cpu
 #SBATCH --gres=gpu:tag_task
-#SBATCH --account=rwth1223
+#SBATCH --account=p0020572
 
 
-source ../environments/load_env_rocky.sh
-source ../environments/horovod-env-rocky/bin/activate
-# source ../environments/load_env_centos.sh
-# source ../environments/horovod-env-centos/bin/activate
 
 
-# module list
-# echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
-# echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
-# echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
+source ../environment/load_env_rocky.sh
+source ../environment/horovod-env-rocky/bin/activate
 
-nvidia-smi
 
-comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c '\
-source setup.sh  && bash script.sh'"
+comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c 'bash script.sh'"
 
-comm_2="source setup.sh && bash script.sh"
+comm_2="bash script.sh"
 
 
 command=tag_command

@@ -23,7 +23,7 @@ def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
     # optimised for 150 epochs
     for pm in optimizer.param_groups:
         # print(epoch, pm["lr"])
-        if epoch < 100:
+        if epoch < 80:
             pm["lr"] = lr * num_workers
         # if epoch == 0:
         #     pm["lr"] = lr
@@ -32,12 +32,12 @@ def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
         #     pm["lr"] = pm["lr"] + increment
         # elif epoch >= 10 and epoch < 40:
         #     pm["lr"] = lr * num_workers
-        elif epoch >= 100 and epoch < 120:
+        elif epoch >= 80 and epoch < 120:
             pm["lr"] = lr / 2 * num_workers
-        elif epoch >= 120 and epoch <= 150:
+        elif epoch >= 120 and epoch < 150:
             pm["lr"] = lr / 4 * num_workers
-        # elif epoch >= 70:
-        #     pm["lr"] = lr / 8 * num_workers
+        elif epoch >= 150:
+            pm["lr"] = lr / 8 * num_workers
 
 
 def get_lr(optimizer):
@@ -310,7 +310,7 @@ def main(args):
     # print(args.world_size)
     # sys.stdout.flush()
 
-    torch.manual_seed(42)
+    torch.manual_seed(456)
 
     # if args.distributed:
     #     args.world_rank = int(os.environ["RANK"])
