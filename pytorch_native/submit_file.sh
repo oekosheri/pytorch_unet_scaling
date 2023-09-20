@@ -3,46 +3,45 @@
 #SBATCH --partition=c18g
 #SBATCH --nodes=tag_node
 #SBATCH --ntasks-per-node=tag_task
-#SBATCH --cpus-per-task=tag_cpu
+#SBATCH --cpus-per-task=12
 #SBATCH --gres=gpu:tag_task
+#SBATCH --account=p0020572
 
 
 
-# source ../../environments/load_env_rocky.sh
-# source ../../environments/horovod-env-rocky/bin/activate
-source ../../alter_environment/load_env_rocky.sh
-source ../../alter_environment/horovod-env-rocky/bin/activate
+source ../../environment/load_env_rocky.sh
+source ../../environment/horovod-env-rocky/bin/activate
 
 # module purge
 # module load iimpi/2019b
-module list
-echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
-echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
-echo "SLURMD_NODENAME: ${SLURMD_NODENAME}"
+# module list
+# echo "SLURM_JOB_NODELIST: ${SLURM_JOB_NODELIST}"
+# echo "R_WLM_ABAQUSHOSTLIST: ${R_WLM_ABAQUSHOSTLIST}"
+echo "SLURMD_NODENAME: ${R_LOGINHOST}"
+${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c 'source setup.sh  && bash script.sh ${R_LOGINHOST}'
+
+# comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c '\
+# source setup.sh  && bash script.sh ${SLURMD_NODENAME}'"
+
+# comm_2="source setup.sh && bash script.sh ${SLURMD_NODENAME}"
 
 
-comm_1="${MPIEXEC} ${FLAGS_MPI_BATCH} zsh -c '\
-source setup.sh  && bash script.sh ${SLURMD_NODENAME}'"
-
-comm_2="source setup.sh && bash script.sh ${SLURMD_NODENAME}"
+# command=tag_command
 
 
-command=tag_command
+# if [ $command = 1 ]
 
+# then
 
-if [ $command = 1 ]
+#     eval  "${comm_1}"
 
-then
+# else
 
-    eval  "${comm_1}"
+#     eval  "${comm_2}"
 
-else
-
-    eval  "${comm_2}"
-
-fi
+# fi
 
 # save the log file
-cp log.csv  ../Logs/log_${SLURM_NTASKS}.csv
-
+cp log.csv  ../../logs/log_${SLURM_NTASKS}.csv
+rm core.*
 
