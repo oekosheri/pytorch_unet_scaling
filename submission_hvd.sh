@@ -13,8 +13,6 @@ name="Indents_"
 for gpu in 1 2 4 6 8 10 12 14
 do
 
-
-
         for augment in 0
         do
 
