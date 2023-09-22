@@ -5,6 +5,8 @@ __pycache__
 **/.ipynb_checkpoints
 **/*.hdf5
 **/*.npy
-Indents*/*
+**/Indents*/*
 models_*/*
 **/*.pi
+**/horovod-env*/*
+
