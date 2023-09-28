@@ -278,7 +278,7 @@ def test(args, model, test_dataloader, df_save):
 
 def main(args):
 
-    torch.manual_seed(2346)
+    torch.manual_seed(1244)
 
     # IP address of master node
     # url = "tcp://" + args.node + ".hpc.itc.rwth-aachen.de:29500"
