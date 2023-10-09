@@ -13,14 +13,12 @@ import time
 from datetime import timedelta
 from models import Unet
 from metric_losses import jaccard_coef
-import ssl
 import horovod.torch as hvd
 
-# ssl._create_default_https_context = ssl._create_unverified_context
 
-
+# custom learning rate optimised for 200 epochs
 def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
-    # optimised for 150 epochs
+    # optimised for 200 epochs
     for pm in optimizer.param_groups:
         # print(epoch, pm["lr"])
         if epoch < 80:
@@ -44,7 +42,7 @@ def get_lr(optimizer):
     for pm in optimizer.param_groups:
         return pm["lr"]
 
-
+# datasets and data loaders
 def dataset(args, image_dir, mask_dir):
 
 
@@ -116,6 +114,7 @@ def train(args, train_dataloader, test_dataloader):
     sys.stdout.flush()
     lossFunc = BCEWithLogitsLoss()
     opt = Adam(model.parameters(), lr=args.lr)
+    # wrapping the optimizer
     opt = hvd.DistributedOptimizer(opt, named_parameters=model.named_parameters(), op=hvd.Average)
 
     # Horovod: broadcast parameters & optimizer state.
@@ -265,7 +264,7 @@ def test(args, model, test_dataloader, df_save):
 
 def main(args):
 
-    torch.manual_seed(2346)
+    torch.manual_seed(1235)
 
     hvd.init()
     hvd.allreduce(torch.tensor([0]), name="Barrier")
