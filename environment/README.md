@@ -1,4 +1,4 @@
-# Installation Steps for a virtual env for both Tensorflow and Horovod-tensorflow
+# Installation Steps for a virtual env for both Pytorch and Horovod-pytorch
 
 1. Load the cluster specific environment
 
