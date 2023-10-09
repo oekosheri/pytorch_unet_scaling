@@ -22,11 +22,9 @@ sys.path.insert(0, parentdir)
 from models import Unet
 from metric_losses import jaccard_coef
 from dataset import Segmentation_dataset
-# import ssl
-
-# # ssl._create_default_https_context = ssl._create_unverified_context
 
 
+# custom learning rate optimised for 200 epochs
 def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
     # optimised for 150 epochs
     for pm in optimizer.param_groups:
@@ -52,7 +50,7 @@ def get_lr(optimizer):
     for pm in optimizer.param_groups:
         return pm["lr"]
 
-
+# datasets and dataloaders
 def dataset(args, image_dir, mask_dir):
 
     images = sorted(os.listdir(image_dir))

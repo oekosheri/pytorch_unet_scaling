@@ -16,9 +16,9 @@ from metric_losses import jaccard_coef
 import horovod.torch as hvd
 
 
-
+# custom learning rate optimised for 200 epochs
 def custom_lr(optimizer, epoch, lr=0.001, num_workers=1):
-    # optimised for 150 epochs
+    # optimised for 200 epochs
     for pm in optimizer.param_groups:
         # print(epoch, pm["lr"])
         if epoch < 80:
@@ -42,7 +42,7 @@ def get_lr(optimizer):
     for pm in optimizer.param_groups:
         return pm["lr"]
 
-
+# datasets and data loaders
 def dataset(args, image_dir, mask_dir):
 
 
