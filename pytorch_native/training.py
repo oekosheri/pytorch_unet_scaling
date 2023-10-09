@@ -54,10 +54,7 @@ def get_lr(optimizer):
 
 
 def dataset(args, image_dir, mask_dir):
-    # images = glob.glob(image_dir + "/*.png")
-    # images.sort()
-    # masks = glob.glob(mask_dir + "/*.png")
-    # masks.sort()
+
     images = sorted(os.listdir(image_dir))
     masks = sorted(os.listdir(mask_dir))
     print(len(images))
@@ -278,9 +275,9 @@ def test(args, model, test_dataloader, df_save):
 
 def main(args):
 
-    torch.manual_seed(1244)
+    torch.manual_seed(1235)
 
-    # IP address of master node
+    # IP address of master node to initiate processes
     # url = "tcp://" + args.node + ".hpc.itc.rwth-aachen.de:29500"
     url = "tcp://" + args.node + ':29500'
     print(url)
@@ -346,10 +343,7 @@ def main(args):
 
     model, df_save = train(args, train_dataloader, test_dataloader)
 
-    # if args.distributed:
-    #     dist.barrier()
 
-    # if args.world_rank == 0:
     df_save = test(args, model, test_dataloader, df_save)
 
     if args.world_rank == 0:

@@ -10,9 +10,8 @@ bs=16
 name="Indents_"
 
 
-for gpu in 1 2 4
+for gpu in 1
 do
-
         for augment in 0
         do
 
