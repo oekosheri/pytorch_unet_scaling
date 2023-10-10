@@ -43,5 +43,6 @@ This [notebook](./notebooks/Loss_curves.ipynb) has been used for post processing
 In the figure below we compare the GPU parallelisation of Unet for Pytorch native and Horovod-pytorch. 
 The trend in Model metric (IOU) vs. GPU seems to remain similar. However the computational efficiency of Pytorch native environment seems to outperform Horovod. We have repeated these calculation with different seeds and the behaviours observed here seem to be consistent.  
 
+<img src="./image.png" width="99%" height="99%">
 
 
