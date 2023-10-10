@@ -40,5 +40,8 @@ Training:
 
 This [notebook](./notebooks/Loss_curves.ipynb) has been used for post processing of log files. We use two metrics to judge the parallelisation performance. First, the deviation from an ideal linear speed-up which corresponds to increasing the computational cost. Second, the model metrics, here IOU, which might decrease in comparison with a 1 GPU scenario as the loss convergence might suffer in a data parallel scheme.
 
+In the figure below we compare the GPU parallelisation of Unet for Pytorch native and Horovod-pytorch. 
+The trend in Model metric (IOU) vs. GPU seems to remain similar. However the computational efficiency of Pytorch native environment seems to outperform Horovod. We have repeated these calculation with different seeds and the behaviours observed here seem to be consistent.  
+
 
 
