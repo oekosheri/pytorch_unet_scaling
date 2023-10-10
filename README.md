@@ -28,6 +28,17 @@ Training:
 
 - Horovod-pytorch requires some other minor edits to the training script that you can read [here](https://horovod.readthedocs.io/en/latest/pytorch.html)
 
-- 
+### Submission: 
+
+- The submission.sh file submits all jobs in a loop. For our data 14 GPUs was the maximum number of GPUs which for our computing cluster correlates with 7 nodes. The submission file adapts the run_file.sh (contatining the python script and its input arguments) and submit_file.sh (containing the submission script) for each job.
+  
+- Parallel MPI jobs are spawned by the env variable $MPIEXE in submit_file.
+  
+- Log files containing training times and metrics are copied in the logs folder on the root directory.
+
+### Notebook
+
+This [notebook](./notebooks/Loss_curves.ipynb) has been used for post processing of log files. We use two metrics to judge the parallelisation performance. First, the deviation from an ideal linear speed-up which corresponds to increasing the computational cost. Second, the model metrics, here IOU, which might decrease in comparison with a 1 GPU scenario as the loss convergence might suffer in a data parallel scheme.
+
 
 
