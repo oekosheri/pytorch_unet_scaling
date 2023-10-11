@@ -45,4 +45,4 @@ The trend in Model metric (IOU) vs. GPU seems to remain similar. However the com
 
 <img src="./image.png" width="99%" height="99%">
 
-
+[Here](https://github.com/oekosheri/tensorflow_scaling/tree/main) you will find a similar analysis for Unet implemented in Tensorflow.
