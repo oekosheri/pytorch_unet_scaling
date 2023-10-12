@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=tag_task
 #SBATCH --cpus-per-task=12
 #SBATCH --gres=gpu:tag_task
-#SBATCH --account=p0020572
+#SBATCH --account=*******
 
 
 
