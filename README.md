@@ -1,10 +1,10 @@
 ## GPU acceleration of Unet using Pytorch native environment and Horovod-pytorch
 
-On the root directory you will find the scripts to run UNet (used for image semantic segmentation) implemented in Pytorch using a GPU data parallel scheme in Horovod-pytorch. In the native Pytorch directory you will find the scripts to run the same training jobs using Pytorch native environment without Horovod. The goal is to compare the paralleisation performance of Horovod-pytoch vs native Pytorch for a UNet algorithm. The data used here is an open microscopy data for semantic segmentation: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7639190.svg)](https://doi.org/10.5281/zenodo.7639190). These calculations have all been done on the [RWTH high performance computing cluster](https://help.itc.rwth-aachen.de/), using Tesla V100 GPUs. 
+On the root directory you will find the scripts to run UNet (used for image semantic segmentation) implemented in Pytorch using a GPU data parallel scheme in Horovod-pytorch. In the directory `pytorch_native`, you will find the scripts to run the same parallel training jobs using Pytorch native environment without Horovod. The goal is to compare the paralleisation performance of Horovod-pytoch vs native Pytorch for a UNet algorithm. The data used here is an open microscopy data for semantic segmentation: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7639190.svg)](https://doi.org/10.5281/zenodo.7639190). These calculations have all been done on the [RWTH high performance computing cluster](https://help.itc.rwth-aachen.de/service/rhr4fjjutttf/), using Tesla V100 GPUs. 
 
 ### Virtual environment
 
-To install Horovod for Pytorch a virtual environment was created. The same environment will be used for both Pytorch native and Horovod trainings so that the results are comparable. Read this [README](./environments/README.md) to see how to set-up the environment and look at this [script](./load_env_rpcky.sh) to see which softwares and environments need to be loaded before creating the vitual env and running the jobs. For both native Pytorch and Horovod we use NCCL as the backend for collective communications. We also use Intel MPI for spawning the parallel processes.
+To install Horovod for Pytorch a virtual environment was created. The same environment will be used for both Pytorch native and Horovod trainings so that the results are comparable. Read this [README](./environment/README.md) to see how to set-up the environment and look at this [script](./environment/load_env_rocky.sh) to see which softwares and environments need to be loaded before creating the vitual env and running the jobs. For both native Pytorch and Horovod we use NCCL as the backend for collective communications. We also use Intel MPI for spawning the parallel processes.
 
 ### Data parallel scheme
 
@@ -18,21 +18,21 @@ Submission:
 
 Training:
 
-- Process initiation: There are different ways to initiate the processes in Pytorch native environment. Here we use TCP initialisation by specifying the IP address of the rank zero worker. To achieve this, we give the name of the master node as input argument to the training script. In Horovod intialisation is a simple call to horovod init. 
+- Process initiation: There are different ways to initiate the processes in the *Pytorch native* environment. Here we use TCP initialisation by specifying the IP address of the rank zero worker. To achieve this, we give the name of the master node as input argument to the training script. In *Horovod* intialisation is a simple call to horovod init. 
   
 - Learning rate: A linear scaling rule is applied to the learning rate: it means the learning rate is multiplied by the number of workers (GPUs). In addition an optional initial warm-up and a gradual scheduling might help the convergence. The warm-up is commented out in our case as it didn’t provide improvement.
   
 - Datasets and data loaders: Data loaders require a distributed sampler that takes in the number of workers and the rank of workers as input arguments.
   
-- Model and optimisation: In Pytorch native the model should be wrapped in DDP (distributed data parallel) in Pytorch horovod the optimiser is wrapped in Horovod distributed optimizer.
+- Model and optimisation: In *Pytorch native* the model should be wrapped in DDP (distributed data parallel); in *Pytorch horovod* the optimiser is wrapped in Horovod distributed optimizer.
 
-- Horovod-pytorch requires some other minor edits to the training script that you can read [here](https://horovod.readthedocs.io/en/latest/pytorch.html)
+- *Horovod-pytorch* requires some other minor edits to the training script that you can read [here](https://horovod.readthedocs.io/en/latest/pytorch.html)
 
 ### Submission: 
 
-- The submission.sh file submits all jobs in a loop. For our data 14 GPUs was the maximum number of GPUs which for our computing cluster correlates with 7 nodes. The submission file adapts the run_file.sh (contatining the python script and its input arguments) and submit_file.sh (containing the submission script) for each job.
+- The `submission.sh` file submits all jobs in a loop. For our data, 14 GPUs was the maximum number of GPUs, which for our computing cluster correlates with 7 compute nodes. The submission file adapts the `run_file.sh` (contatining the python script and its input arguments) and `submit_file.sh` (containing the submission script) for each job.
   
-- Parallel MPI jobs are spawned by the env variable $MPIEXE in submit_file.
+- Parallel MPI jobs are spawned by the env variable `$MPIEXEC` in `submit_file.sh`.
   
 - Log files containing training times and metrics are copied in the logs folder on the root directory.
 
