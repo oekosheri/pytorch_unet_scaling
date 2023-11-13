@@ -1,6 +1,6 @@
 ## GPU acceleration of Unet using Pytorch native environment and Horovod-pytorch
 
-On the root directory you will find the scripts to run UNet (used for image semantic segmentation) implemented in Pytorch using a GPU data parallel scheme in Horovod-pytorch. In the directory `pytorch_native`, you will find the scripts to run the same parallel training jobs using Pytorch native environment without Horovod. The goal is to compare the paralleisation performance of Horovod-pytoch vs native Pytorch for a UNet algorithm. The data used here is an open microscopy data for semantic segmentation: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7639190.svg)](https://doi.org/10.5281/zenodo.7639190). These calculations have all been done on the [RWTH high performance computing cluster](https://help.itc.rwth-aachen.de/service/rhr4fjjutttf/), using Tesla V100 GPUs. 
+On the root directory you will find the scripts to run UNet (used for image semantic segmentation) implemented in Pytorch using a GPU data parallel scheme in Horovod-pytorch. In the directory `pytorch_native`, you will find the scripts to run the same distributed training jobs using the Pytorch native environment without Horovod. The goal is to compare the paralleisation performance of Horovod-pytoch vs native Pytorch for a UNet algorithm. The data used here is an open microscopy data for semantic segmentation: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7639190.svg)](https://doi.org/10.5281/zenodo.7639190). These calculations have all been done on the [RWTH high performance computing cluster](https://help.itc.rwth-aachen.de/service/rhr4fjjutttf/), using Tesla V100 GPUs. 
 
 ### Virtual environment
 
@@ -24,7 +24,7 @@ Training:
   
 - Datasets and data loaders: Data loaders require a distributed sampler that takes in the number of workers and the rank of workers as input arguments.
   
-- Model and optimisation: In *Pytorch native* the model should be wrapped in DDP (distributed data parallel); in *Pytorch horovod* the optimiser is wrapped in Horovod distributed optimizer.
+- Model and optimisation: In *Pytorch native*, the model should be wrapped in DDP (distributed data parallel); in *Pytorch horovod*, the optimiser is wrapped in the Horovod distributed optimizer.
 
 - *Horovod-pytorch* requires some other minor edits to the training script that you can read [here](https://horovod.readthedocs.io/en/latest/pytorch.html)
 
@@ -40,7 +40,7 @@ Training:
 
 This [notebook](./notebooks/Loss_curves.ipynb) has been used for post processing of log files. We use two metrics to judge the parallelisation performance. First, the deviation from an ideal linear speed-up which corresponds to increasing the computational cost. Second, the model metrics, here IOU, which might decrease in comparison with a 1 GPU scenario as the loss convergence might suffer in a data parallel scheme.
 
-In the figure below we compare the GPU parallelisation of Unet for Pytorch native and Horovod-pytorch. 
+In the figure below, we compare the GPU parallelisation of Unet for *Pytorch native* and *Horovod-pytorch*. 
 The trend in Model metric (IOU) vs. GPU seems to remain similar. However the computational efficiency of Pytorch native environment seems to outperform Horovod. We have repeated these calculation with different seeds and the behaviours observed here seem to be consistent.  
 
 <img src="./image.png" width="99%" height="99%">
